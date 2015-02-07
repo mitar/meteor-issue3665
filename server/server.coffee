@@ -22,7 +22,8 @@ setupMessages = ->
 
       return if initializing
 
-      console.log "Message", fields
+      # We do not do anything, this is just so that there is a tailable observe in the background.
+      #console.log "Message", fields
 
 Meteor.startup ->
   setupMessages()
@@ -31,3 +32,24 @@ Meteor.startup ->
     sendMessage 'test', new Date()
   ,
     1000 # ms
+
+Meteor.startup ->
+  TestCollection.remove {}
+
+  Meteor.setInterval ->
+    TestCollection.insert
+      test: new Date()
+  ,
+    100 # ms
+
+Meteor.publish null, ->
+  handle = TestCollection.find({}).observeChanges
+    added: (id, fields) =>
+      console.log id, fields
+      @added 'test', id, fields
+      @removed 'test', id
+
+  @onStop =>
+    handle.stop()
+
+  @ready()
